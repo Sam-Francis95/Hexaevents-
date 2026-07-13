@@ -1,0 +1,28 @@
+[
+  {
+    "id": "u-1001",
+    "name": "Lamine Yamal",
+    "email": "lamine.yamal@company.com",
+    "password": "password123",
+    "role": "participant",
+    "employeeId": "EMP-2245",
+    "department": "Product Engineering",
+    "phone": "+91 98765 43210",
+    "avatarUrl": "",
+    "skills": ["React", "System Design", "Product Analytics"],
+    "createdAt": "2025-02-11T09:00:00.000Z"
+  },
+  {
+    "id": "u-1002",
+    "name": "Arjun Mehta",
+    "email": "arjun.mehta@company.com",
+    "password": "password123",
+    "role": "organizer",
+    "employeeId": "EMP-1187",
+    "department": "Learning & Development",
+    "phone": "+91 91234 56789",
+    "avatarUrl": "",
+    "skills": [],
+    "createdAt": "2024-11-03T09:00:00.000Z"
+  }
+]

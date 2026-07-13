@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ntf-3001",
+    "userId": "u-1001",
+    "type": "registration",
+    "title": "Registration approved",
+    "message": "Your registration for \"Applied AI Workshop: Building with LLMs\" has been approved.",
+    "read": false,
+    "createdAt": "2026-06-16T09:00:00.000Z"
+  },
+  {
+    "id": "ntf-3002",
+    "userId": "u-1001",
+    "type": "reminder",
+    "title": "Event starts in 3 days",
+    "message": "\"Quarterly All-Hands: FY26 Roadmap\" starts on Jul 15, 10:30 AM.",
+    "read": false,
+    "createdAt": "2026-07-08T04:00:00.000Z"
+  },
+  {
+    "id": "ntf-3003",
+    "userId": "u-1001",
+    "type": "certificate",
+    "title": "Certificate ready",
+    "message": "Your certificate for \"Security Awareness: Phishing & Social Engineering\" is ready to download.",
+    "read": true,
+    "createdAt": "2026-06-29T10:05:00.000Z"
+  },
+  {
+    "id": "ntf-3004",
+    "userId": "u-1001",
+    "type": "event_update",
+    "title": "Venue changed",
+    "message": "\"Design Systems 201\" moved to Microsoft Teams (was Conference Room 2A).",
+    "read": true,
+    "createdAt": "2026-07-02T10:00:00.000Z"
+  },
+  {
+    "id": "ntf-3005",
+    "userId": "u-1001",
+    "type": "ai_recommendation",
+    "title": "Recommended for you",
+    "message": "Based on your interests, \"Product Analytics with SQL — Level 2\" might be a good fit.",
+    "read": false,
+    "createdAt": "2026-07-05T06:00:00.000Z"
+  }
+]
