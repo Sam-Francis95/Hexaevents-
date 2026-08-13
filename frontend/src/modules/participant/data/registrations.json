@@ -1,0 +1,94 @@
+[
+  {
+    "id": "reg-5001",
+    "eventId": "evt-101",
+    "userId": "u-1001",
+    "formResponses": {
+      "department": "Product Engineering",
+      "experience": "3-5 years"
+    },
+    "status": "approved",
+    "attended": false,
+    "registeredAt": "2026-06-15T08:00:00.000Z",
+    "updatedAt": "2026-06-16T09:00:00.000Z",
+    "teamMembers": []
+  },
+  {
+    "id": "reg-5002",
+    "eventId": "evt-102",
+    "userId": "u-1001",
+    "formResponses": {},
+    "status": "registered",
+    "attended": false,
+    "registeredAt": "2026-06-20T08:00:00.000Z",
+    "updatedAt": "2026-06-20T08:00:00.000Z",
+    "teamMembers": []
+  },
+  {
+    "id": "reg-5003",
+    "eventId": "evt-103",
+    "userId": "u-1001",
+    "formResponses": {
+      "department": "Product Engineering",
+      "experience": "3-5 years"
+    },
+    "status": "waitlisted",
+    "attended": false,
+    "registeredAt": "2026-06-22T08:00:00.000Z",
+    "updatedAt": "2026-06-22T08:00:00.000Z",
+    "teamMembers": []
+  },
+  {
+    "id": "reg-5004",
+    "eventId": "evt-105",
+    "userId": "u-1001",
+    "formResponses": {},
+    "status": "completed",
+    "attended": true,
+    "registeredAt": "2026-06-10T08:00:00.000Z",
+    "updatedAt": "2026-06-28T07:00:00.000Z",
+    "teamMembers": []
+  },
+  {
+    "id": "reg-5005",
+    "eventId": "evt-107",
+    "userId": "u-1001",
+    "formResponses": {
+      "department": "Product Engineering",
+      "experience": "3-5 years"
+    },
+    "teamMembers": [
+      {
+        "name": "Virat Kohli",
+        "email": "virat.kohli@example.com"
+      },
+      {
+        "name": "Kane Williamson",
+        "email": "kane.williamson@example.com"
+      }
+    ],
+    "status": "registered",
+    "attended": false,
+    "registeredAt": "2026-07-25T10:00:00.000Z",
+    "updatedAt": "2026-07-25T10:00:00.000Z"
+  },
+  {
+    "id": "reg-5006",
+    "eventId": "evt-108",
+    "userId": "u-1001",
+    "formResponses": {
+      "department": "Product Engineering",
+      "experience": "3-5 years"
+    },
+    "teamMembers": [
+      {
+        "name": "Lionel Messi",
+        "email": "lionel.messi@example.com"
+      }
+    ],
+    "status": "registered",
+    "attended": true,
+    "registeredAt": "2026-06-01T10:00:00.000Z",
+    "updatedAt": "2026-06-01T10:00:00.000Z"
+  }
+]

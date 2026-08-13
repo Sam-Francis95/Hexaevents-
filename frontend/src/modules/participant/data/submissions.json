@@ -1,0 +1,14 @@
+[
+  {
+    "id": "sub-9001",
+    "registrationId": "reg-5005",
+    "eventId": "evt-107",
+    "userId": "u-1001",
+    "githubLink": "https://github.com/example/codesprint-entry",
+    "driveVideoLink": "https://drive.google.com/file/d/demo-video-link",
+    "pdfUrl": "https://example.com/mock-uploads/codesprint-writeup.pdf",
+    "submittedAt": "2026-08-15T20:00:00.000Z",
+    "submissionDeadline": "2026-08-16T09:00:00.000Z",
+    "status": "submitted"
+  }
+]
