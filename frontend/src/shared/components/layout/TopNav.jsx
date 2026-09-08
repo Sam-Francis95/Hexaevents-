@@ -1,215 +1,160 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { Menu, X, Bell, LogOut, UserCircle, Search, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Bell,
+  LogOut,
+  UserCircle,
+  Search,
+  Sun,
+  Moon,
+  ChevronDown,
+  Calendar,
+} from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { getNavForRole } from '../../../app/navRegistry';
 import { useAuth } from '../../hooks/useAuth';
-import { Avatar } from '../common/Avatar';
-import { Badge } from '../common/Badge';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useReputation } from '../../../modules/participant/contexts/ReputationContext';
+import { ROUTES } from '../../utils/constants';
 
-/**
- * Single horizontal top nav, shared across every module. Nav items still
- * come exclusively from navRegistry.js -> each module's navConfig.js --
- * this file does not hardcode any participant-specific paths, so Organizer
- * and Admin plug in the same way they did with the old Sidebar.
- *
- * Design choice: two of navConfig's items -- whichever one uses the Bell
- * icon and whichever uses the UserCircle icon -- are surfaced through the
- * existing notification-bell / avatar-menu affordances instead of being
- * duplicated as a 6th/7th text tab. That's what "notification-bell" and
- * "user-avatar" already were for in the old Navbar; keeping them as icons
- * (matched generically by icon reference, not a hardcoded label) avoids two
- * links pointing at the same page sitting side by side. Every item is still
- * reachable this way -- and the mobile drawer below lists the complete,
- * unfiltered set as a plain vertical list, so nothing is ever hidden.
- */
-export function TopNav({ unreadCount = 0 }) {
-  const { user, role, logout } = useAuth();
-  const items = getNavForRole(role);
+export function TopNav({ unreadCount = 3 }) {
+  const { user, logout } = useAuth();
+  const { reputation } = useReputation();
+  const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
-  const notificationsItem = items.find((item) => item.icon === Bell);
-  const profileItem = items.find((item) => item.icon === UserCircle);
-  const primaryLinks = items.filter((item) => item !== notificationsItem && item !== profileItem);
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const menuRef = useRef(null);
 
+  // Close dropdowns on outside click
   useEffect(() => {
-    function onClick(e) {
+    function handler(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
     }
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Close the mobile drawer on any route change (link click) rather than
-  // requiring a second tap.
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, [items.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Priya';
+  const roleName = reputation ? `${reputation.levelBadge} ${reputation.levelName} · Level ${reputation.currentLevel}` : 'Participant';
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter' && searchValue.trim()) {
+      navigate(`${ROUTES.PARTICIPANT.EVENTS}?q=${encodeURIComponent(searchValue)}`);
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface">
-      <div className="flex h-16 items-center gap-2 px-4 sm:px-6">
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-900/5 lg:hidden"
-          aria-label="Open menu"
-        >
-          <Menu className="size-[18px]" />
-        </button>
+    <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b border-border bg-surface px-5 shadow-sm sm:px-7 backdrop-blur-none">
+      {/* Search Input Bar */}
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-300 pointer-events-none" />
+        <input
+          type="search"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Search events, hackathons, ideathons..."
+          className="h-10 w-full rounded-xl border border-border bg-canvas pl-10 pr-10 text-xs text-ink-900 placeholder:text-ink-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2]"
+        />
+        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-bold text-ink-500">
+          /
+        </div>
+      </div>
 
-        <Link to={primaryLinks[0]?.path || '/'} className="flex shrink-0 items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-500 text-white">
-            <Sparkles className="size-[18px]" />
-          </span>
-          <span className="hidden leading-tight sm:block">
-            <span className="block text-sm font-bold text-ink-900">SmartEvent AI</span>
-          </span>
+      {/* Right Controls */}
+      <div className="flex items-center gap-3.5">
+        {/* Calendar shortcut */}
+        <Link
+          to={ROUTES.PARTICIPANT.CALENDAR}
+          className="flex size-9 items-center justify-center rounded-xl text-ink-500 transition-colors hover:bg-ink-900/5 hover:text-ink-900"
+          title="Calendar"
+        >
+          <Calendar className="size-4.5" />
         </Link>
 
-        <nav className="ml-2 hidden items-center gap-1 lg:flex">
-          {primaryLinks.map(({ label, path, icon: Icon }) => (
-            <NavLink
-              key={path}
-              to={path}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition-colors',
-                  isActive ? 'bg-accent-50 text-accent-700' : 'text-ink-700 hover:bg-ink-900/5'
-                )
-              }
-            >
-              <Icon className="size-[15px]" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="relative ml-auto hidden max-w-xs flex-1 lg:block">
-          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-300" />
-          <input
-            type="search"
-            placeholder="Search events…"
-            className="h-9 w-full rounded-full border-0 bg-canvas pl-9 pr-4 text-sm text-ink-900 placeholder:text-ink-300 focus-visible:ring-2 focus-visible:ring-accent-500"
-          />
-        </div>
-
-        <div className="ml-auto flex items-center gap-1 lg:ml-3">
-          {notificationsItem && (
-            <Link
-              to={notificationsItem.path}
-              className="relative flex size-9 items-center justify-center rounded-full text-ink-500 hover:bg-ink-900/5"
-              aria-label={notificationsItem.label}
-              title={notificationsItem.label}
-            >
-              <Bell className="size-[18px]" />
-              {unreadCount > 0 && (
-                <span className="absolute right-1 top-1 flex min-w-[16px] items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-surface">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="flex size-9 items-center justify-center rounded-xl text-ink-500 transition-colors hover:bg-ink-900/5 hover:text-ink-900"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+        >
+          {theme === 'dark' ? (
+            <Sun className="size-4.5" />
+          ) : (
+            <Moon className="size-4.5" />
           )}
+        </button>
 
-          <div className="relative ml-1" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2.5 hover:bg-ink-900/5"
-            >
-              <Avatar name={user?.name} src={user?.avatarUrl} size="sm" />
-              <span className="hidden text-left leading-tight md:block">
-                <span className="block text-sm font-semibold text-ink-900">{user?.name}</span>
-              </span>
-              {user?.role && (
-                <Badge tone="accent" dot={false} className="hidden md:inline-flex">
-                  {user.role}
-                </Badge>
-              )}
-            </button>
+        {/* Notifications Icon with Badge */}
+        <Link
+          to={ROUTES.PARTICIPANT.NOTIFICATIONS}
+          className="relative flex size-9 items-center justify-center rounded-xl text-ink-500 transition-colors hover:bg-ink-900/5 hover:text-ink-900"
+          title="Notifications"
+        >
+          <Bell className="size-4.5" />
+          {unreadCount > 0 && (
+            <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-[#0056D2] text-[9px] font-bold text-white shadow-sm">
+              {unreadCount}
+            </span>
+          )}
+        </Link>
 
-            {menuOpen && (
-              <div className="absolute right-0 top-12 z-20 w-48 rounded-xl border border-border bg-surface py-1 shadow-popover animate-fade-in">
-                {profileItem && (
-                  <Link
-                    to={profileItem.path}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-3.5 py-2 text-sm text-ink-700 hover:bg-canvas"
-                  >
-                    <UserCircle className="size-4" /> {profileItem.label}
-                  </Link>
-                )}
+        {/* User Profile dropdown */}
+        <div className="relative ml-1" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-1.5 transition-colors hover:bg-ink-900/5"
+          >
+            {/* Portrait avatar */}
+            <div className="relative size-8 shrink-0 overflow-hidden rounded-full border border-border shadow-sm">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120"
+                alt="Priya"
+                className="size-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=Priya`;
+                }}
+              />
+            </div>
+
+            <div className="hidden text-left leading-tight md:block">
+              <p className="text-xs font-bold text-ink-900">
+                {firstName} {reputation?.levelBadge}
+              </p>
+              <p className="text-[10px] font-medium text-ink-500">{roleName}</p>
+            </div>
+
+            <ChevronDown className={cn('size-3 text-ink-400 transition-transform', menuOpen && 'rotate-180')} />
+          </button>
+
+          {/* User Dropdown */}
+          {menuOpen && (
+            <div className="absolute right-0 top-12 z-50 w-52 rounded-xl border border-border bg-surface py-1.5 shadow-lg animate-fade-in">
+              <div className="border-b border-border px-4 py-2.5">
+                <p className="truncate text-xs font-bold text-ink-900">{user?.name || firstName}</p>
+                <p className="truncate text-[10px] text-ink-500">{user?.email || 'priya@hexaevents.com'}</p>
+              </div>
+              <div className="py-1">
+                <Link
+                  to={ROUTES.PARTICIPANT.PROFILE}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-xs text-ink-700 hover:bg-canvas hover:text-ink-900"
+                >
+                  <UserCircle className="size-4" /> My Profile
+                </Link>
                 <button
                   onClick={logout}
-                  className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-sm text-danger-500 hover:bg-danger-50"
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
                 >
                   <LogOut className="size-4" /> Log out
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Mobile / narrow-viewport drawer -- the complete, unfiltered item
-          list, so every route stays reachable even below the lg breakpoint
-          where the inline links row is hidden. */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-ink-900/40 animate-fade-in"
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col bg-surface shadow-popover animate-fade-in">
-            <div className="flex h-16 items-center justify-between border-b border-border px-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-accent-500 text-white">
-                  <Sparkles className="size-4" />
-                </span>
-                <span className="text-sm font-bold text-ink-900">SmartEvent AI</span>
-              </div>
-              <button
-                onClick={() => setDrawerOpen(false)}
-                className="flex size-9 items-center justify-center rounded-lg text-ink-500 hover:bg-ink-900/5"
-                aria-label="Close menu"
-              >
-                <X className="size-[18px]" />
-              </button>
-            </div>
-
-            <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-3">
-              <ul className="flex flex-col gap-1">
-                {items.map(({ label, path, icon: Icon }) => (
-                  <li key={path}>
-                    <NavLink
-                      to={path}
-                      onClick={() => setDrawerOpen(false)}
-                      className={({ isActive }) =>
-                        cn(
-                          'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors',
-                          isActive ? 'bg-accent-50 text-accent-700' : 'text-ink-700 hover:bg-ink-900/5'
-                        )
-                      }
-                    >
-                      <Icon className="size-[18px] shrink-0" />
-                      {label}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            <button
-              onClick={logout}
-              className="flex items-center gap-3 border-t border-border px-6 py-3.5 text-left text-sm font-medium text-danger-500 hover:bg-danger-50"
-            >
-              <LogOut className="size-4" /> Log out
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

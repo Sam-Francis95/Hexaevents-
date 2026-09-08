@@ -4,26 +4,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: '#F5F6FB',
-        surface: '#FFFFFF',
+        canvas: 'var(--color-canvas)',
+        surface: 'var(--color-surface)',
         border: {
-          DEFAULT: '#E7E8F2',
-          strong: '#D7D9E8',
+          DEFAULT: 'var(--color-border)',
+          strong: 'var(--color-border-strong)',
         },
         ink: {
-          900: '#12142B',
-          700: '#3D3F58',
-          500: '#71738C',
-          300: '#A6A8BE',
+          900: 'var(--color-ink-900)',
+          700: 'var(--color-ink-700)',
+          500: 'var(--color-ink-500)',
+          400: 'var(--color-ink-400)',
+          300: 'var(--color-ink-300)',
         },
-        // Sidebar — dark navy-to-indigo gradient shell shared by every module
+        // Sidebar — uses adaptive vars in dark mode
         sidebar: {
-          from: '#0B1130',
-          via: '#121A44',
-          to: '#1C1B4B',
-          border: 'rgba(255,255,255,0.08)',
-          text: 'rgba(255,255,255,0.65)',
-          textActive: '#FFFFFF',
+          from: 'var(--color-sidebar-from)',
+          via: 'var(--color-sidebar-via)',
+          to: 'var(--color-sidebar-to)',
+          border: 'var(--color-sidebar-border)',
+          text: 'var(--color-sidebar-text)',
+          textActive: 'var(--color-sidebar-text-active)',
         },
         // Primary brand blue — Coursera blue (#0056D2), per mentor direction
         accent: {
@@ -36,20 +37,20 @@ export default {
         },
         // Secondary brand purple
         purple: {
-          50: '#F3EFFE',
-          100: '#E4DBFD',
-          300: '#C3AEFA',
-          500: '#8B5CF6',
-          600: '#7A46F0',
-          700: '#6C34E0',
+          50: '#F5F3FF',
+          100: '#EDE9FE',
+          300: '#C4B5FD',
+          500: '#7C3AED',
+          600: '#6D28D9',
+          700: '#5B21B6',
         },
-        success: { 50: '#E9FBF1', 100: '#D1F6E1', 500: '#22C55E', 600: '#17A34E', 700: '#0F7F3D' },
-        warning: { 50: '#FFF6E9', 100: '#FEEAC7', 500: '#F59E0B', 600: '#DB8607', 700: '#B06B06' },
-        danger: { 50: '#FDEEEE', 100: '#FBD9D9', 500: '#EF4444', 600: '#DC2626', 700: '#B41F1F' },
-        info: { 50: '#EAF3FF', 100: '#D3E7FF', 500: '#3B82F6', 600: '#2E6BDB', 700: '#2555B0' },
+        success: { 50: '#F0FDF4', 100: '#DCFCE7', 500: '#16A34A', 600: '#15803D', 700: '#166534' },
+        warning: { 50: '#FFFBEB', 100: '#FEF3C7', 500: '#F59E0B', 600: '#D97706', 700: '#B45309' },
+        danger: { 50: '#FEF2F2', 100: '#FEE2E2', 500: '#EF4444', 600: '#DC2626', 700: '#B91C1C' },
+        info: { 50: '#EFF6FF', 100: '#DBEAFE', 500: '#3B82F6', 600: '#2563EB', 700: '#1D4ED8' },
       },
       fontFamily: {
-        sans: ['"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', '"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
@@ -78,12 +79,14 @@ export default {
         'sidebar-active': '0 4px 14px rgba(67, 97, 238, 0.35)',
       },
       spacing: {
+        4.5: '1.125rem',
         18: '4.5rem',
         68: '17rem',
       },
       backgroundImage: {
-        'sidebar-gradient': 'radial-gradient(circle at 20% 0%, #1C1B4B 0%, #121A44 45%, #0B1130 100%)',
+        'sidebar-gradient': 'radial-gradient(circle at 20% 0%, var(--color-sidebar-to) 0%, var(--color-sidebar-via) 45%, var(--color-sidebar-from) 100%)',
         'banner-gradient': 'linear-gradient(115deg, #0056D2 0%, #2E7BE0 55%, #4E97EE 100%)',
+        'hero-text': 'linear-gradient(to right, #C3AEFA, #8B5CF6, #3B82F6)',
       },
       keyframes: {
         'fade-in': { from: { opacity: 0 }, to: { opacity: 1 } },

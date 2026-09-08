@@ -1,11 +1,11 @@
 import { cn } from '../../utils/cn';
 
 export const BUTTON_VARIANTS = {
-  primary: 'bg-accent-500 text-white hover:bg-accent-600 active:bg-accent-700 shadow-xs',
-  secondary: 'bg-surface text-ink-900 border border-border-strong hover:bg-canvas active:bg-border/40',
-  ghost: 'bg-transparent text-ink-700 hover:bg-ink-900/5 active:bg-ink-900/10',
-  danger: 'bg-danger-500 text-white hover:bg-danger-700 shadow-xs',
-  purple: 'bg-purple-500 text-white hover:bg-purple-600 active:bg-purple-700 shadow-xs',
+  primary: 'bg-banner-gradient text-white hover:opacity-90 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:opacity-100',
+  secondary: 'bg-surface text-ink-900 border border-border-strong hover:bg-canvas hover:border-accent-500/50 hover:text-accent-600 active:bg-border/40 shadow-xs hover:shadow-sm',
+  ghost: 'bg-transparent text-ink-700 hover:bg-ink-900/5 hover:text-ink-900 active:bg-ink-900/10',
+  danger: 'bg-danger-500 text-white hover:bg-danger-700 shadow-md hover:shadow-lg',
+  purple: 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:opacity-90 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:opacity-100',
 };
 
 export const BUTTON_SIZES = {
