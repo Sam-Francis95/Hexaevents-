@@ -5,7 +5,7 @@ import { sendChatMessage } from '../services/chatbotService';
 
 const GREETING = {
   role: 'assistant',
-  content: "Hi! I'm the SmartEvent AI assistant. Ask me about upcoming events, registration, eligibility, or deadlines.",
+  content: "Hi! I'm the HexaEvents assistant. Ask me about upcoming events, registration, eligibility, or deadlines.",
 };
 
 export function ChatbotWidget() {
@@ -42,7 +42,7 @@ export function ChatbotWidget() {
           <div className="flex items-center justify-between gap-2 border-b border-border bg-accent-500 px-4 py-3">
             <div className="flex items-center gap-2 text-white">
               <Bot className="size-4" />
-              <span className="text-sm font-semibold">SmartEvent Assistant</span>
+              <span className="text-sm font-semibold">HexaEvents Assistant</span>
             </div>
             <button
               onClick={() => setIsOpen(false)}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-import { Sparkles, Mail, Lock, User, Building2 } from 'lucide-react';
+import { Zap, Mail, Lock, User, Building2, Trophy, Users, Award } from 'lucide-react';
 import { useAuth } from '../../../../shared/hooks/useAuth';
 import { useToast } from '../../../../shared/hooks/useToast';
 import { Input } from '../../../../shared/components/common/Input';
@@ -94,45 +94,73 @@ export default function Login() {
   return (
     <div className="flex min-h-screen">
       {/* Brand panel */}
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-banner-gradient p-10 text-white lg:flex">
-        <div className="absolute -right-24 -top-24 size-96 rounded-full bg-white/10" />
-        <div className="absolute -bottom-32 -left-16 size-80 rounded-full bg-white/10" />
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden p-10 text-white lg:flex" style={{background: 'linear-gradient(145deg, #0C1F4A 0%, #0D2B6B 40%, #1a1060 70%, #0C1F4A 100%)'}}>
+        {/* Decorative blobs */}
+        <div className="absolute -right-16 -top-16 size-80 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute bottom-0 left-0 size-64 rounded-full bg-purple-600/15 blur-3xl" />
+        <div className="absolute right-0 top-1/2 size-48 rounded-full bg-blue-400/10 blur-2xl" />
 
-        <div className="relative flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-xl bg-white/15">
-            <Sparkles className="size-4" />
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0056D2_0%,#7C3AED_100%)] text-white shadow-lg">
+            <Zap className="size-5" strokeWidth={2.5} />
           </span>
-          <span className="text-lg font-semibold tracking-tight">SmartEvent AI</span>
+          <div>
+            <p className="text-[13px] font-bold tracking-[0.14em] text-white">HEXAEVENTS</p>
+            <p className="text-[10px] font-medium tracking-[0.1em] text-white/50">Discover • Participate • Excel</p>
+          </div>
         </div>
 
-        <div className="relative space-y-4 max-w-md">
-          <p className="text-3xl font-semibold leading-tight tracking-tight">
-            Every internal event, in one calm, well-organized place.
+        {/* Hero text */}
+        <div className="relative space-y-5 max-w-md">
+          <p className="text-3xl font-bold leading-tight tracking-tight">
+            Your journey to build,{' '}
+            <span className="text-blue-300">compete</span>{' '}and{' '}
+            <span className="text-purple-300">win</span>{' '}starts here.
           </p>
-          <p className="text-white/80">
-            Register in a click, track your registrations, and collect certificates automatically —
-            no more spreadsheets or forwarded emails.
+          <p className="text-base text-white/70 leading-relaxed">
+            Discover hackathons, ideathons, and competitions curated for builders like you.
+            Register in minutes, track your progress, and collect your achievements.
           </p>
+          {/* Stats row */}
+          <div className="flex gap-6 pt-2">
+            {[
+              { icon: Trophy, value: '500+', label: 'Events Hosted' },
+              { icon: Users, value: '50K+', label: 'Participants' },
+              { icon: Award, value: '₹2Cr+', label: 'Prize Pool' },
+            ].map(({ icon: Icon, value, label }) => (
+              <div key={label} className="flex items-center gap-2">
+                <Icon className="size-4 text-blue-300" />
+                <div>
+                  <p className="text-base font-bold text-white">{value}</p>
+                  <p className="text-[11px] text-white/50">{label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <p className="relative text-sm text-white/60 font-mono">v0.2 · Participant Portal</p>
+        <p className="relative text-xs text-white/30 font-mono">HexaEvents · Participant Portal</p>
       </div>
 
       {/* Form panel */}
       <div className="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-xl bg-accent-500 text-white">
-              <Sparkles className="size-4" />
+          <div className="mb-8 lg:hidden flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#0056D2_0%,#7C3AED_100%)] text-white">
+              <Zap className="size-4" strokeWidth={2.5} />
             </span>
-            <span className="text-lg font-semibold tracking-tight text-ink-900">SmartEvent AI</span>
+            <div>
+              <p className="text-[12px] font-bold tracking-[0.14em] text-ink-900">HEXAEVENTS</p>
+              <p className="text-[9px] font-medium tracking-[0.1em] text-ink-400">Discover • Participate • Excel</p>
+            </div>
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">
             {isSignup ? 'Create your account' : 'Log in to your account'}
           </h1>
           <p className="mt-1.5 text-sm text-ink-500">
-            {isSignup ? 'For Mavericks and college participants — takes a minute.' : 'Use Google, or your email and password.'}
+            {isSignup ? 'Join thousands of builders, creators and innovators — takes a minute.' : 'Sign in to discover hackathons, ideathons and competitions.'}
           </p>
 
           {GOOGLE_CONFIGURED ? (

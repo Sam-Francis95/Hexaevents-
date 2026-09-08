@@ -13,6 +13,7 @@ import { createRegistration, getRegistrationForEvent } from '../../services/regi
 import { isValidEmail, isRequired, validate } from '../../../../shared/utils/validators';
 import { formatDate } from '../../../../shared/utils/formatters';
 import { EXPERIENCE_OPTIONS, DEPARTMENT_OPTIONS, ROUTES } from '../../../../shared/utils/constants';
+import { MOCK_EVENTS } from '../../../../shared/utils/mockData';
 
 export default function Registration() {
   const { id } = useParams();
@@ -26,12 +27,12 @@ export default function Registration() {
   const [errors, setErrors] = useState({});
 
   const [values, setValues] = useState({
-    name: user.name || '',
-    employeeId: user.employeeId || '',
-    email: user.email || '',
-    department: user.department || '',
+    name: user?.name || '',
+    employeeId: user?.employeeId || '',
+    email: user?.email || '',
+    department: user?.department || '',
     experience: '',
-    phone: user.phone || '',
+    phone: user?.phone || '',
     additionalQuestions: '',
     termsAccepted: false,
   });
@@ -40,7 +41,7 @@ export default function Registration() {
   // the single source of truth for the submit payload either way — this is
   // just presentation state (Part H.3).
   const [departmentChoice, setDepartmentChoice] = useState(() => {
-    const initial = user.department || '';
+    const initial = user?.department || '';
     const isKnown = DEPARTMENT_OPTIONS.some((o) => o.value === initial);
     return isKnown ? initial : initial ? 'Other' : '';
   });
@@ -56,9 +57,10 @@ export default function Registration() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getEventById(id), getRegistrationForEvent(user.id, id)]).then(([eventRes, regRes]) => {
+    Promise.all([getEventById(id), getRegistrationForEvent(user?.id, id)]).then(([eventRes, regRes]) => {
       if (cancelled) return;
-      if (!eventRes.success) {
+      const eventData = (eventRes.success && eventRes.data) ? eventRes.data : MOCK_EVENTS.find((e) => e.id === id);
+      if (!eventData) {
         toast.error('Event not found.');
         navigate(ROUTES.PARTICIPANT.EVENTS, { replace: true });
         return;
@@ -68,9 +70,9 @@ export default function Registration() {
         navigate(ROUTES.PARTICIPANT.EVENT_DETAILS(id), { replace: true });
         return;
       }
-      setEvent(eventRes.data);
-      if (eventRes.data.requiresSubmission) {
-        const min = eventRes.data.teamSizeLimit?.min || 0;
+      setEvent(eventData);
+      if (eventData.requiresSubmission) {
+        const min = eventData.teamSizeLimit?.min || 0;
         setTeamMembers(Array.from({ length: min }, () => ({ name: '', email: '' })));
       }
       setIsLoading(false);

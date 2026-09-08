@@ -39,6 +39,8 @@ const SEATS_TONE_TEXT = {
   info: 'text-ink-700',
 };
 
+import { MOCK_EVENTS } from '../../../../shared/utils/mockData';
+
 export default function EventDetails() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -60,7 +62,8 @@ export default function EventDetails() {
       getEventEligibility(id),
     ]).then(([eventRes, regRes, eligibilityRes]) => {
       if (cancelled) return;
-      setEvent(eventRes.success ? eventRes.data : null);
+      const found = (eventRes.success && eventRes.data) ? eventRes.data : MOCK_EVENTS.find((e) => e.id === id);
+      setEvent(found || null);
       setRegistration(regRes.data || null);
       setEligibility(eligibilityRes.success ? eligibilityRes.data : { eligible: true, reasons: [], rules: [] });
       setIsLoading(false);

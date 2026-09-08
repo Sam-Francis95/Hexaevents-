@@ -64,7 +64,7 @@ export function EventCard({ event, compact = false }) {
   return (
     <Link
       to={ROUTES.PARTICIPANT.EVENT_DETAILS(event.id)}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all duration-150 active:scale-[0.99] hover:shadow-card-hover"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover hover:ring-1 hover:ring-accent-500/20 active:scale-[0.99]"
     >
       <EventBanner category={event.category} className="h-16" showIcon />
 
