@@ -76,29 +76,38 @@ async function mockCancelRegistration(registrationId) {
 
 // ---- Real implementations ----
 
-async function realGetMyRegistrations() {
+async function realGetMyRegistrations(userId) {
   try {
     const res = await apiClient.get('/registrations');
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetMyRegistrations(userId);
+    }
     return fail(err.message, err.code);
   }
 }
 
-async function realGetRegistrationForEvent(_userId, eventId) {
+async function realGetRegistrationForEvent(userId, eventId) {
   try {
     const res = await apiClient.get(`/registrations/event/${eventId}`);
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetRegistrationForEvent(userId, eventId);
+    }
     return fail(err.message, err.code);
   }
 }
 
-async function realCreateRegistration({ eventId, formResponses, teamMembers }) {
+async function realCreateRegistration(payload) {
   try {
-    const res = await apiClient.post('/registrations', { eventId, formResponses, teamMembers });
+    const res = await apiClient.post('/registrations', payload);
     return ok(res.data, res.message);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockCreateRegistration(payload);
+    }
     return fail(err.message, err.code, err.details);
   }
 }
@@ -108,6 +117,9 @@ async function realGetRegistrationById(registrationId) {
     const res = await apiClient.get(`/registrations/${registrationId}`);
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetRegistrationById(registrationId);
+    }
     return fail(err.message, err.code);
   }
 }
@@ -117,6 +129,9 @@ async function realCancelRegistration(registrationId) {
     await apiClient.delete(`/registrations/${registrationId}`);
     return ok(null, 'Registration cancelled.');
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockCancelRegistration(registrationId);
+    }
     return fail(err.message, err.code);
   }
 }

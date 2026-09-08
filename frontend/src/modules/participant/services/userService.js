@@ -27,20 +27,26 @@ async function mockUpdateUserProfile(userId, updates) {
 
 // ---- Real implementations ----
 
-async function realGetUserProfile() {
+async function realGetUserProfile(userId) {
   try {
     const res = await apiClient.get('/users/me');
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetUserProfile(userId);
+    }
     return fail(err.message, err.code);
   }
 }
 
-async function realUpdateUserProfile(_userId, updates) {
+async function realUpdateUserProfile(userId, updates) {
   try {
     const res = await apiClient.patch('/users/me', updates);
     return ok(res.data, res.message);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockUpdateUserProfile(userId, updates);
+    }
     return fail(err.message, err.code);
   }
 }

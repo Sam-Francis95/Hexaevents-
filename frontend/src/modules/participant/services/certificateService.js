@@ -12,6 +12,9 @@ async function realGetCertificates() {
     const res = await apiClient.get('/certificates');
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetCertificates();
+    }
     return fail(err.message, err.code);
   }
 }

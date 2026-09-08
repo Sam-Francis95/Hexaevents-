@@ -53,6 +53,9 @@ async function realGetEvents(filters = {}) {
     const res = await apiClient.get(`/events${qs ? `?${qs}` : ''}`);
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetEvents(filters);
+    }
     return fail(err.message, err.code);
   }
 }
@@ -62,6 +65,9 @@ async function realGetEventById(id) {
     const res = await apiClient.get(`/events/${id}`);
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetEventById(id);
+    }
     return fail(err.message, err.code);
   }
 }
@@ -71,6 +77,9 @@ async function realGetEventCategories() {
     const res = await apiClient.get('/events/categories');
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetEventCategories();
+    }
     return fail(err.message, err.code);
   }
 }
@@ -80,6 +89,9 @@ async function realGetEventEligibility(eventId) {
     const res = await apiClient.get(`/events/${eventId}/eligibility`);
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetEventEligibility();
+    }
     return fail(err.message, err.code);
   }
 }

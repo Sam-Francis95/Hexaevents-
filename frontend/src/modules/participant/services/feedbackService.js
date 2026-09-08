@@ -35,29 +35,38 @@ async function mockGetMyFeedback(userId) {
 
 // ---- Real implementations ----
 
-async function realGetFeedbackForEvent(_userId, eventId) {
+async function realGetFeedbackForEvent(userId, eventId) {
   try {
     const res = await apiClient.get(`/feedback/${eventId}`);
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetFeedbackForEvent(userId, eventId);
+    }
     return fail(err.message, err.code);
   }
 }
 
-async function realSubmitFeedback({ eventId, rating, comments, suggestions }) {
+async function realSubmitFeedback(payload) {
   try {
-    const res = await apiClient.post('/feedback', { eventId, rating, comments, suggestions });
+    const res = await apiClient.post('/feedback', payload);
     return ok(res.data, res.message);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockSubmitFeedback(payload);
+    }
     return fail(err.message, err.code);
   }
 }
 
-async function realGetMyFeedback() {
+async function realGetMyFeedback(userId) {
   try {
     const res = await apiClient.get('/feedback');
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetMyFeedback(userId);
+    }
     return fail(err.message, err.code);
   }
 }

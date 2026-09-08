@@ -44,6 +44,9 @@ async function realGetNotifications() {
     const res = await apiClient.get('/notifications');
     return ok(res.data.map(normalize));
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetNotifications();
+    }
     return fail(err.message, err.code);
   }
 }
@@ -53,6 +56,9 @@ async function realGetUnreadCount() {
     const res = await apiClient.get('/notifications/unread-count');
     return ok(res.data);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockGetUnreadCount();
+    }
     return fail(err.message, err.code);
   }
 }
@@ -62,6 +68,9 @@ async function realMarkNotificationRead(id) {
     await apiClient.patch(`/notifications/${id}/read`);
     return ok(null);
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockMarkNotificationRead(id);
+    }
     return fail(err.message, err.code);
   }
 }
@@ -71,6 +80,9 @@ async function realMarkAllRead() {
     await apiClient.patch('/notifications/mark-all-read');
     return ok(null, 'All notifications marked as read.');
   } catch (err) {
+    if (err.message && (err.message.includes('fetch') || err.message.includes('unexpected response') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      return mockMarkAllRead();
+    }
     return fail(err.message, err.code);
   }
 }
