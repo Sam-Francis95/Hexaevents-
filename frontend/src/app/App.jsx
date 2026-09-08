@@ -3,6 +3,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '../shared/context/AuthContext';
 import { ToastProvider } from '../shared/context/ToastContext';
 import { ToastHost } from '../shared/components/common/Toast';
+import { ReputationProvider } from '../modules/participant/contexts/ReputationContext';
 import { AppRoutes } from './AppRoutes';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -12,8 +13,10 @@ export default function App() {
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
-          <AppRoutes />
-          <ToastHost />
+          <ReputationProvider>
+            <AppRoutes />
+            <ToastHost />
+          </ReputationProvider>
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
