@@ -13,12 +13,18 @@ import sys
 from datetime import datetime, timedelta, timezone
 from random import choice, randint, sample
 
+# Added to seed specific demo data
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.auth.security import hash_password  # noqa: E402
+from app.reputation.config import ACHIEVEMENTS_REGISTRY, XP_REWARDS  # noqa: E402
+from app.reputation.services import get_level_info  # noqa: E402
+
 from faker import Faker
 from pymongo import MongoClient
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.auth.security import hash_password  # noqa: E402
-
+# Already inserted above
 fake = Faker()
 
 DEPARTMENTS = ["Product Engineering", "Automation", "Analytics", "Digital", "Innovation"]
@@ -180,6 +186,64 @@ def build_hackathon_events():
     ]
 
 
+def seed_reputation_for_demo(db):
+    """
+    Seeds the demo participant with exactly 2,450 XP, Level 4 (Competitor),
+    and unlocks a few specific achievements.
+    """
+    demo_user = db.users.find_one({"email": "demo.participant@example.com"})
+    if not demo_user:
+        return
+
+    user_id = str(demo_user["_id"])
+    now = datetime.now(timezone.utc)
+
+    # Clean existing
+    db.xp_transactions.delete_many({"participantId": user_id})
+    db.participant_achievements.delete_many({"participantId": user_id})
+
+    # 1. Seed XP Transactions to exactly 2,450
+    transactions = [
+        {"sourceType": "event_registration", "sourceId": "evt1", "xpAmount": 50, "description": "Registered for CodeSprint 48", "createdAt": (now - timedelta(days=10)).isoformat()},
+        {"sourceType": "event_completion", "sourceId": "evt1", "xpAmount": 100, "description": "Completed CodeSprint 48", "createdAt": (now - timedelta(days=8)).isoformat()},
+        {"sourceType": "certificate", "sourceId": "cert1", "xpAmount": 50, "description": "Earned event certificate", "createdAt": (now - timedelta(days=8)).isoformat()},
+        {"sourceType": "team_join", "sourceId": "team1", "xpAmount": 25, "description": "Joined Neural Ninjas", "createdAt": (now - timedelta(days=5)).isoformat()},
+        {"sourceType": "event_registration", "sourceId": "evt2", "xpAmount": 50, "description": "Registered for AI Builders Challenge", "createdAt": (now - timedelta(days=3)).isoformat()},
+        {"sourceType": "event_completion", "sourceId": "evt2", "xpAmount": 100, "description": "Completed AI Builders Challenge", "createdAt": (now - timedelta(days=1)).isoformat()},
+        {"sourceType": "achievement", "sourceId": "FIRST_STEP", "xpAmount": 50, "description": "Unlocked First Step achievement", "createdAt": (now - timedelta(days=10)).isoformat()},
+        {"sourceType": "achievement", "sourceId": "HACK_BUILDER", "xpAmount": 150, "description": "Unlocked Hack Builder achievement", "createdAt": (now - timedelta(days=1)).isoformat()},
+        {"sourceType": "achievement", "sourceId": "TEAM_PLAYER", "xpAmount": 100, "description": "Unlocked Team Player achievement", "createdAt": (now - timedelta(days=5)).isoformat()},
+        {"sourceType": "legacy_activity", "sourceId": "legacy", "xpAmount": 1775, "description": "Historical participation XP", "createdAt": (now - timedelta(days=30)).isoformat()},
+    ]
+    
+    # 50 + 100 + 50 + 25 + 50 + 100 + 50 + 150 + 100 + 1775 = 2450
+
+    for t in transactions:
+        t["participantId"] = user_id
+    db.xp_transactions.insert_many(transactions)
+
+    # 2. Update the user record
+    level_info = get_level_info(2450)
+    db.users.update_one(
+        {"_id": demo_user["_id"]},
+        {"$set": {
+            "totalXP": 2450,
+            "currentLevel": level_info["currentLevel"],
+            "levelName": level_info["levelName"],
+            "levelBadge": level_info["levelBadge"]
+        }}
+    )
+
+    # 3. Seed Achievements (First Step, Hack Builder, Team Player)
+    achievements = [
+        {"participantId": user_id, "achievementId": "FIRST_STEP", "progress": 1, "unlocked": True, "unlockedAt": (now - timedelta(days=10)).isoformat()},
+        {"participantId": user_id, "achievementId": "HACK_BUILDER", "progress": 3, "unlocked": True, "unlockedAt": (now - timedelta(days=1)).isoformat()},
+        {"participantId": user_id, "achievementId": "TEAM_PLAYER", "progress": 5, "unlocked": True, "unlockedAt": (now - timedelta(days=5)).isoformat()},
+        {"participantId": user_id, "achievementId": "IDEA_MACHINE", "progress": 2, "unlocked": False}, # In progress example
+    ]
+    db.participant_achievements.insert_many(achievements)
+
+
 def run():
     uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017/smartevent")
     client = MongoClient(uri)
@@ -197,6 +261,9 @@ def run():
     db.events.insert_many(events)
     hackathon_count = sum(1 for e in events if e.get("requiresSubmission"))
     print(f"Seeded {len(events)} events ({sum(1 for e in events if e['eligibilityRules'])} with eligibility restrictions, {hackathon_count} Hackathon/requiresSubmission).")
+
+    seed_reputation_for_demo(db)
+    print("Seeded reputation for demo participant (2,450 XP, Level 4, Achievements).")
 
     client.close()
 

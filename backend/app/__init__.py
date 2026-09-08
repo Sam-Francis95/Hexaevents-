@@ -13,7 +13,7 @@ def create_app(config_class=Config, mongo_client_override=None):
     app.config.from_object(config_class)
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=config_class.JWT_ACCESS_TOKEN_EXPIRES_SECONDS)
 
-    CORS(app, origins=app.config["CORS_ORIGINS"], supports_credentials=True)
+    CORS(app, origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"], supports_credentials=True)
     jwt.init_app(app)
 
     mongo_client, db = init_mongo(app, client_override=mongo_client_override)
@@ -29,6 +29,7 @@ def create_app(config_class=Config, mongo_client_override=None):
     from .feedback.routes import feedback_bp
     from .chatbot.routes import chatbot_bp
     from .submissions.routes import submissions_bp
+    from .reputation.routes import reputation_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
@@ -39,6 +40,7 @@ def create_app(config_class=Config, mongo_client_override=None):
     app.register_blueprint(feedback_bp, url_prefix="/api/feedback")
     app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
     app.register_blueprint(submissions_bp, url_prefix="/api/submissions")
+    app.register_blueprint(reputation_bp, url_prefix="/api/reputation")
 
     from .common.errors import register_error_handlers
     register_error_handlers(app)

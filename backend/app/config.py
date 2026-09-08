@@ -30,7 +30,7 @@ class Config:
     AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
     AZURE_OPENAI_DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "")
 
-    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174").split(",")
 
     # Hackathon submission PDFs -- local disk until Azure Blob/S3 credentials
     # are issued (see app/storage.py). MAX_CONTENT_LENGTH is a real Flask
