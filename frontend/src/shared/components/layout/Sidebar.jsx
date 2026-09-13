@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronsLeft, ArrowRight, Gift, Zap } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { getNavForRole } from '../../../app/navRegistry';
@@ -8,8 +8,10 @@ import { useAuth } from '../../hooks/useAuth';
 const BOTTOM_NAV_LABELS = ['Settings', 'Help & Support'];
 
 export function Sidebar({ collapsed, onToggle }) {
-  const { role } = useAuth();
-  const allItems = getNavForRole(role);
+  const { roles } = useAuth();
+  const location = useLocation();
+  const activeRole = location.pathname.startsWith('/organizer') ? 'event_manager' : 'participant';
+  const allItems = getNavForRole(activeRole);
   const mainItems = allItems.filter((i) => !BOTTOM_NAV_LABELS.includes(i.label));
   const bottomItems = allItems.filter((i) => BOTTOM_NAV_LABELS.includes(i.label));
 
@@ -17,26 +19,29 @@ export function Sidebar({ collapsed, onToggle }) {
     <aside
       className={cn(
         'hidden shrink-0 flex-col border-r text-white transition-[width] duration-200 lg:flex',
+        'sticky top-0 h-screen',
         // Dark navy in both Day & Night modes matching reference images
         'bg-[#0B1E3D] border-[#162D50] dark:bg-[#060D1A] dark:border-[#14233C]',
         collapsed ? 'w-[72px]' : 'w-[250px]'
       )}
     >
-      {/* Logo Area */}
-      <div className={cn('flex h-[68px] items-center gap-3 px-5', collapsed && 'justify-center px-0')}>
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0056D2] via-[#2563EB] to-[#7C3AED] text-white shadow-md">
-          <Zap className="size-4.5" strokeWidth={2.5} />
-        </span>
-        {!collapsed && (
-          <div className="leading-tight">
-            <p className="text-[14px] font-bold tracking-[0.12em] text-white">HEXAEVENTS</p>
-            <p className="text-[10px] font-medium tracking-[0.08em] text-white/50">Discover • Participate • Excel</p>
+      {/* Brand / Logo */}
+      <div className="flex h-[88px] items-center justify-center px-4">
+        {collapsed ? (
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/95 shadow-sm ring-1 ring-white/10 overflow-hidden">
+            <div className="w-[150%] h-[150%] flex items-center justify-center">
+              <img src="/logo.jpg" alt="Hexaware" className="h-3 w-auto object-contain mix-blend-darken" />
+            </div>
+          </div>
+        ) : (
+          <div className="flex w-full items-center justify-center rounded-xl bg-white/95 px-4 py-2.5 shadow-lg shadow-black/10 ring-1 ring-white/20 transition-all hover:bg-white hover:shadow-xl hover:-translate-y-0.5 cursor-pointer">
+            <img src="/logo.jpg" alt="Hexaware" className="h-[18px] w-auto object-contain mix-blend-darken" />
           </div>
         )}
       </div>
 
       {/* Main Nav */}
-      <nav className="flex-1 overflow-y-auto scrollbar-thin-dark px-3 py-2">
+      <nav className="flex-1 overflow-visible px-3 py-2">
         <ul className="flex flex-col gap-1">
           {mainItems.map(({ label, path, icon: Icon, badge }) => (
             <li key={path}>
@@ -111,23 +116,7 @@ export function Sidebar({ collapsed, onToggle }) {
         )}
       </nav>
 
-      {/* Refer & Earn Card */}
-      {!collapsed && (
-        <div className="mx-3 mb-3 rounded-xl border border-white/10 bg-white/5 p-3.5">
-          <div className="mb-1.5 flex items-center gap-2">
-            <div className="flex size-6 items-center justify-center rounded-lg bg-amber-400/20 text-amber-300">
-              <Gift className="size-3.5" />
-            </div>
-            <h4 className="text-xs font-bold text-white">Refer & Earn</h4>
-          </div>
-          <p className="mb-2.5 text-[10px] leading-relaxed text-white/60">
-            Invite your friends and earn exciting rewards!
-          </p>
-          <button className="flex w-full items-center justify-center gap-1 rounded-lg bg-[#0056D2] py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-[#0048B0] active:scale-95 shadow-sm">
-            Invite Now <ArrowRight className="size-3" />
-          </button>
-        </div>
-      )}
+
 
       {/* Collapse Toggle */}
       <button

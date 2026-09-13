@@ -13,20 +13,29 @@ import { USE_MOCK } from '../../../../shared/services/apiClient';
 const GOOGLE_CONFIGURED = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 export default function Login() {
-  const { login, register, loginGoogle, isAuthenticated, role } = useAuth();
+  const { login, register, loginGoogle, isAuthenticated, roles = [], hasRole } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const [values, setValues] = useState({
-    name: '', email: '', password: '', department: '', college: '', batch: '',
+    name: '', email: '', password: '', department: '', college: '', batch: '', accountType: 'participant'
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (isAuthenticated) {
-    const from = location.state?.from?.pathname || (role === 'participant' ? ROUTES.PARTICIPANT.DASHBOARD : '/');
+    const isOrganizerOnly = hasRole?.('event_manager') && !hasRole?.('participant');
+    const defaultRoute = isOrganizerOnly ? '/organizer/dashboard' : ROUTES.PARTICIPANT.DASHBOARD;
+    
+    let from = location.state?.from?.pathname || defaultRoute;
+    if (isOrganizerOnly && !from.startsWith('/organizer')) {
+      from = defaultRoute;
+    } else if (!hasRole?.('event_manager') && from.startsWith('/organizer')) {
+      from = defaultRoute;
+    }
+    
     return <Navigate to={from} replace />;
   }
 
@@ -34,9 +43,19 @@ export default function Login() {
     return (e) => setValues((v) => ({ ...v, [field]: e.target.value }));
   }
 
-  function goToDashboard(name) {
+  function goToDashboard(name, userRoles = []) {
     toast.success(mode === 'signup' ? `Welcome, ${name.split(' ')[0]}.` : `Welcome back, ${name.split(' ')[0]}.`);
-    navigate(ROUTES.PARTICIPANT.DASHBOARD, { replace: true });
+    const isOrganizerOnly = userRoles.includes('event_manager') && !userRoles.includes('participant');
+    const defaultRoute = isOrganizerOnly ? '/organizer/dashboard' : ROUTES.PARTICIPANT.DASHBOARD;
+    
+    let path = location.state?.from?.pathname || defaultRoute;
+    if (isOrganizerOnly && !path.startsWith('/organizer')) {
+      path = defaultRoute;
+    } else if (!userRoles.includes('event_manager') && path.startsWith('/organizer')) {
+      path = defaultRoute;
+    }
+    
+    navigate(path, { replace: true });
   }
 
   async function handleLoginSubmit(e) {
@@ -56,7 +75,8 @@ export default function Login() {
       toast.error(res.message);
       return;
     }
-    goToDashboard(res.data.name);
+    const userRoles = res.data.roles ? res.data.roles : (res.data.role ? [res.data.role] : []);
+    goToDashboard(res.data.name, userRoles);
   }
 
   async function handleSignupSubmit(e) {
@@ -77,7 +97,8 @@ export default function Login() {
       toast.error(res.message);
       return;
     }
-    goToDashboard(res.data.name);
+    const userRoles = res.data.roles ? res.data.roles : (res.data.role ? [res.data.role] : []);
+    goToDashboard(res.data.name, userRoles);
   }
 
   async function handleGoogleSuccess(credentialResponse) {
@@ -86,7 +107,8 @@ export default function Login() {
       toast.error(res.message);
       return;
     }
-    goToDashboard(res.data.name);
+    const userRoles = res.data.roles ? res.data.roles : (res.data.role ? [res.data.role] : []);
+    goToDashboard(res.data.name, userRoles);
   }
 
   const isSignup = mode === 'signup';
@@ -101,13 +123,9 @@ export default function Login() {
         <div className="absolute right-0 top-1/2 size-48 rounded-full bg-blue-400/10 blur-2xl" />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0056D2_0%,#7C3AED_100%)] text-white shadow-lg">
-            <Zap className="size-5" strokeWidth={2.5} />
-          </span>
-          <div>
-            <p className="text-[13px] font-bold tracking-[0.14em] text-white">HEXAEVENTS</p>
-            <p className="text-[10px] font-medium tracking-[0.1em] text-white/50">Discover • Participate • Excel</p>
+        <div className="relative mb-6">
+          <div className="inline-flex items-center justify-center rounded-xl bg-white/95 px-5 py-3 shadow-lg shadow-black/10 ring-1 ring-white/20 transition-all hover:bg-white hover:-translate-y-0.5">
+            <img src="/logo.jpg" alt="Hexaware" className="h-5 w-auto object-contain mix-blend-darken" />
           </div>
         </div>
 
@@ -146,14 +164,8 @@ export default function Login() {
       {/* Form panel */}
       <div className="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#0056D2_0%,#7C3AED_100%)] text-white">
-              <Zap className="size-4" strokeWidth={2.5} />
-            </span>
-            <div>
-              <p className="text-[12px] font-bold tracking-[0.14em] text-ink-900">HEXAEVENTS</p>
-              <p className="text-[9px] font-medium tracking-[0.1em] text-ink-400">Discover • Participate • Excel</p>
-            </div>
+          <div className="mb-8 lg:hidden flex items-center">
+            <img src="/logo.jpg" alt="Hexaware" className="h-5 w-auto object-contain" />
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">
@@ -186,15 +198,39 @@ export default function Login() {
 
           <form onSubmit={isSignup ? handleSignupSubmit : handleLoginSubmit} noValidate className="flex flex-col gap-4">
             {isSignup && (
-              <Input
-                label="Full name"
-                placeholder="Your name"
-                icon={<User />}
-                value={values.name}
-                onChange={handleChange('name')}
-                error={errors.name}
-                required
-              />
+              <>
+                <div className="mb-2 space-y-2">
+                  <label className="text-xs font-semibold text-ink-900">Account Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['participant', 'organizer', 'both'].map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setValues(v => ({ ...v, accountType: type }))}
+                        className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                          values.accountType === type
+                            ? 'border-[#0056D2] bg-[#0056D2]/5 text-[#0056D2]'
+                            : 'border-border bg-canvas text-ink-500 hover:bg-surface'
+                        }`}
+                      >
+                        {type === 'participant' && 'Participant'}
+                        {type === 'organizer' && 'Organizer'}
+                        {type === 'both' && 'Both'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Input
+                  label="Full name"
+                  placeholder="Your name"
+                  icon={<User />}
+                  value={values.name}
+                  onChange={handleChange('name')}
+                  error={errors.name}
+                  required
+                />
+              </>
             )}
 
             <Input
@@ -257,11 +293,13 @@ export default function Login() {
           </p>
 
           <div className="mt-6 rounded-xl border border-border bg-canvas px-3.5 py-3 text-xs text-ink-500">
-            Demo credentials —{' '}
-            <span className="font-mono text-ink-700">
-              {USE_MOCK ? 'priya.sharma@company.com' : 'demo.participant@example.com'}
-            </span>{' '}
-            / <span className="font-mono text-ink-700">password123</span>
+            <p className="font-semibold mb-1">Demo credentials</p>
+            <p>
+              Participant: <span className="font-mono text-ink-700">{USE_MOCK ? 'priya.sharma@company.com' : 'demo.participant@example.com'}</span> / <span className="font-mono text-ink-700">password123</span>
+            </p>
+            <p>
+              Organizer: <span className="font-mono text-ink-700">demo.organizer@example.com</span> / <span className="font-mono text-ink-700">password123</span>
+            </p>
           </div>
         </div>
       </div>
