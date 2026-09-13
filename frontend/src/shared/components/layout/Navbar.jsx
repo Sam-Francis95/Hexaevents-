@@ -7,7 +7,7 @@ import { Avatar } from '../common/Avatar';
 import { ROUTES } from '../../utils/constants';
 
 export function Navbar({ onMenuClick, title = 'SmartEvent AI', unreadCount = 0 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -69,7 +69,7 @@ export function Navbar({ onMenuClick, title = 'SmartEvent AI', unreadCount = 0 }
             <Avatar name={user?.name} src={user?.avatarUrl} size="sm" />
             <span className="hidden text-left leading-tight md:block">
               <span className="block text-sm font-semibold text-ink-900">{user?.name}</span>
-              <span className="block text-xs capitalize text-ink-500">{user?.role}</span>
+              <span className="block text-xs capitalize text-ink-500">{(user?.roles || []).join(', ')}</span>
             </span>
           </button>
 
@@ -82,6 +82,29 @@ export function Navbar({ onMenuClick, title = 'SmartEvent AI', unreadCount = 0 }
               >
                 <UserCircle className="size-4" /> My profile
               </Link>
+
+              {hasRole?.('event_manager') && hasRole?.('participant') && (
+                  <>
+                    <div className="border-b border-border my-1" />
+                    <div className="px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-ink-400">Workspaces</div>
+                    <Link
+                      to={ROUTES.PARTICIPANT.DASHBOARD}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 px-3.5 py-2 text-sm text-ink-700 hover:bg-canvas"
+                    >
+                      Participant Workspace
+                    </Link>
+                    <Link
+                      to="/organizer/dashboard"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 px-3.5 py-2 text-sm text-ink-700 hover:bg-canvas"
+                    >
+                      Event Manager Workspace
+                    </Link>
+                    <div className="border-b border-border my-1" />
+                  </>
+                )}
+
               <button
                 onClick={logout}
                 className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-sm text-danger-500 hover:bg-danger-50"

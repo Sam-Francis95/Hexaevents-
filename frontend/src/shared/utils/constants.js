@@ -1,6 +1,6 @@
 export const ROLES = {
   PARTICIPANT: 'participant',
-  ORGANIZER: 'organizer',
+  ORGANIZER: 'event_manager',
   ADMIN: 'admin',
 };
 

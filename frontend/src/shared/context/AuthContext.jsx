@@ -50,10 +50,12 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const userRoles = user?.roles ? user.roles : (user?.role ? [user.role] : []);
+    return {
       user,
-      role: user?.role ?? null,
+      roles: userRoles,
+      hasRole: (roleName) => userRoles.includes(roleName),
       isAuthenticated: Boolean(user),
       isInitializing,
       login,
@@ -61,9 +63,8 @@ export function AuthProvider({ children }) {
       loginGoogle,
       logout,
       updateUser,
-    }),
-    [user, isInitializing, login, register, loginGoogle, logout, updateUser]
-  );
+    };
+  }, [user, isInitializing, login, register, loginGoogle, logout, updateUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

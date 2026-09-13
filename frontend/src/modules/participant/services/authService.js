@@ -63,9 +63,9 @@ async function realLoginUser(email, password) {
   }
 }
 
-async function realRegisterUser({ name, email, password, department, college, batch }) {
+async function realRegisterUser({ name, email, password, department, college, batch, accountType }) {
   try {
-    const res = await apiClient.post('/auth/register', { name, email, password, department, college, batch });
+    const res = await apiClient.post('/auth/register', { name, email, password, department, college, batch, accountType });
     setAuthToken(res.data.token);
     persistSession(res.data.user);
     return ok(res.data.user, res.message);

@@ -9,6 +9,7 @@ import {
   Moon,
   ChevronDown,
   Calendar,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../hooks/useAuth';
@@ -17,7 +18,7 @@ import { useReputation } from '../../../modules/participant/contexts/ReputationC
 import { ROUTES } from '../../utils/constants';
 
 export function TopNav({ unreadCount = 3 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const { reputation } = useReputation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -36,7 +37,7 @@ export function TopNav({ unreadCount = 3 }) {
   }, []);
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'Priya';
-  const roleName = reputation ? `${reputation.levelBadge} ${reputation.levelName} · Level ${reputation.currentLevel}` : 'Participant';
+  const roleName = hasRole?.('event_manager') && !hasRole?.('participant') ? 'Event Organizer' : (reputation ? `${reputation.levelBadge} ${reputation.levelName} · Level ${reputation.currentLevel}` : 'Participant');
 
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter' && searchValue.trim()) {
@@ -144,6 +145,41 @@ export function TopNav({ unreadCount = 3 }) {
                 >
                   <UserCircle className="size-4" /> My Profile
                 </Link>
+                
+                {hasRole?.('participant') && (
+                  <>
+                    <Link
+                      to="/participant/help"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs text-ink-700 hover:bg-canvas hover:text-ink-900"
+                    >
+                      <HelpCircle className="size-4" /> Help & Support
+                    </Link>
+                  </>
+                )}
+
+                {hasRole?.('event_manager') && hasRole?.('participant') && (
+                  <>
+                    <div className="border-b border-border my-1" />
+                    <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-ink-400">Workspaces</div>
+                    <Link
+                      to={ROUTES.PARTICIPANT.DASHBOARD}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs text-ink-700 hover:bg-canvas hover:text-ink-900"
+                    >
+                      Participant Workspace
+                    </Link>
+                    <Link
+                      to="/organizer/dashboard"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs text-ink-700 hover:bg-canvas hover:text-ink-900"
+                    >
+                      Event Manager Workspace
+                    </Link>
+                    <div className="border-b border-border my-1" />
+                  </>
+                )}
+
                 <button
                   onClick={logout}
                   className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"

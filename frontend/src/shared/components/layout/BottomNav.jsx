@@ -18,9 +18,10 @@ const MAX_PRIMARY_TABS = 5;
  * have a navConfig of their own length.
  */
 export function BottomNav() {
-  const { role } = useAuth();
+  const { roles } = useAuth();
   const location = useLocation();
-  const items = getNavForRole(role);
+  const activeRole = location.pathname.startsWith('/organizer') ? 'event_manager' : 'participant';
+  const items = getNavForRole(activeRole);
   const [moreOpen, setMoreOpen] = useState(false);
   const sheetRef = useRef(null);
 

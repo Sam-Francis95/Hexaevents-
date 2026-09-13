@@ -3,8 +3,8 @@ import { useAuth } from '../shared/hooks/useAuth';
 import { Loader } from '../shared/components/common/Loader';
 import { ROUTES } from '../shared/utils/constants';
 
-export function ProtectedRoute({ roles, children }) {
-  const { isAuthenticated, isInitializing, role } = useAuth();
+export function ProtectedRoute({ roles: requiredRoles, children }) {
+  const { isAuthenticated, isInitializing, roles } = useAuth();
   const location = useLocation();
 
   if (isInitializing) return <Loader fullHeight label="Loading your session…" />;
@@ -13,7 +13,8 @@ export function ProtectedRoute({ roles, children }) {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
   }
 
-  if (roles && !roles.includes(role)) {
+  const hasRequiredRole = requiredRoles ? requiredRoles.some((r) => roles.includes(r)) : true;
+  if (!hasRequiredRole) {
     return <Navigate to={ROUTES.UNAUTHORIZED} replace />;
   }
 
