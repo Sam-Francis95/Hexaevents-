@@ -30,6 +30,7 @@ def create_app(config_class=Config, mongo_client_override=None):
     from .chatbot.routes import chatbot_bp
     from .submissions.routes import submissions_bp
     from .reputation.routes import reputation_bp
+    from .organizer.routes import organizer_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
@@ -41,6 +42,7 @@ def create_app(config_class=Config, mongo_client_override=None):
     app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
     app.register_blueprint(submissions_bp, url_prefix="/api/submissions")
     app.register_blueprint(reputation_bp, url_prefix="/api/reputation")
+    app.register_blueprint(organizer_bp, url_prefix="/api/organizer")
 
     from .common.errors import register_error_handlers
     register_error_handlers(app)

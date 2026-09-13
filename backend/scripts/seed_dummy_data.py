@@ -17,9 +17,9 @@ from random import choice, randint, sample
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.auth.security import hash_password  # noqa: E402
-from app.reputation.config import ACHIEVEMENTS_REGISTRY, XP_REWARDS  # noqa: E402
-from app.reputation.services import get_level_info  # noqa: E402
+from app_mongo.auth.security import hash_password  # noqa: E402
+from app_mongo.reputation.config import ACHIEVEMENTS_REGISTRY, XP_REWARDS  # noqa: E402
+from app_mongo.reputation.services import get_level_info  # noqa: E402
 
 from faker import Faker
 from pymongo import MongoClient
@@ -68,6 +68,24 @@ def build_users(n=25):
     users[0]["passwordHash"] = hash_password("password123")
     users[0]["department"] = "Product Engineering"
     users[0]["batch"] = "2026"
+    
+    # One predictable organizer login
+    users.append({
+        "_id": "seed-organizer",
+        "name": "Demo Organizer",
+        "email": "demo.organizer@example.com",
+        "passwordHash": hash_password("password123"),
+        "role": "event_manager",
+        "authProvider": "local",
+        "avatarUrl": "",
+        "department": "Event Management",
+        "college": "Hexaware",
+        "employeeId": "ORG-0001",
+        "phone": "+1234567890",
+        "batch": "",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    })
+    
     return users
 
 
@@ -261,6 +279,7 @@ def run():
     db.events.insert_many(events)
     hackathon_count = sum(1 for e in events if e.get("requiresSubmission"))
     print(f"Seeded {len(events)} events ({sum(1 for e in events if e['eligibilityRules'])} with eligibility restrictions, {hackathon_count} Hackathon/requiresSubmission).")
+    print("Demo Organizer -> email: demo.organizer@example.com / password: password123")
 
     seed_reputation_for_demo(db)
     print("Seeded reputation for demo participant (2,450 XP, Level 4, Achievements).")

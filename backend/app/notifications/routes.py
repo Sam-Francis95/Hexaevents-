@@ -1,56 +1,49 @@
-from flask import Blueprint, current_app
-from bson import ObjectId
-from bson.errors import InvalidId
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from typing import List
 
-from ..common.responses import ok, fail
-from ..common.auth_guard import require_auth, current_user
+from app.database.core import get_db
+from app.database.models.execution import Notification
+from app.database.models.user import User
+from app.auth.dependencies import get_current_user
+from app.schemas.core import ok, fail
 
-notifications_bp = Blueprint("notifications", __name__)
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
+def _serialize(n: Notification):
+    return {
+        "id": n.id,
+        "userId": n.user_id,
+        "title": n.title,
+        "message": n.message,
+        "type": n.type,
+        "link": n.link,
+        "isRead": n.is_read,
+        "createdAt": n.created_at.isoformat()
+    }
 
-def _serialize(n):
-    n = dict(n)
-    n["id"] = str(n.pop("_id"))
-    n["userId"] = str(n["userId"])
-    return n
-
-
-@notifications_bp.get("")
-@require_auth
-def list_notifications():
-    user = current_user()
-    items = list(current_app.db.notifications.find({"userId": user["_id"]}).sort("createdAt", -1))
+@router.get("")
+def list_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    items = db.query(Notification).filter(Notification.user_id == current_user.id).order_by(Notification.created_at.desc()).all()
     return ok([_serialize(n) for n in items])
 
-
-@notifications_bp.get("/unread-count")
-@require_auth
-def unread_count():
-    user = current_user()
-    count = current_app.db.notifications.count_documents({"userId": user["_id"], "isRead": False})
+@router.get("/unread-count")
+def unread_count(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    count = db.query(Notification).filter(Notification.user_id == current_user.id, Notification.is_read == False).count()
     return ok(count)
 
-
-@notifications_bp.patch("/<notification_id>/read")
-@require_auth
-def mark_read(notification_id):
-    user = current_user()
-    try:
-        oid = ObjectId(notification_id)
-    except InvalidId:
-        return fail("Notification not found.", "NOT_FOUND", status=404)
-
-    result = current_app.db.notifications.update_one(
-        {"_id": oid, "userId": user["_id"]}, {"$set": {"isRead": True}}
-    )
-    if result.matched_count == 0:
-        return fail("Notification not found.", "NOT_FOUND", status=404)
+@router.patch("/{notification_id}/read")
+def mark_read(notification_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    n = db.query(Notification).filter(Notification.id == notification_id, Notification.user_id == current_user.id).first()
+    if not n:
+        return fail("Notification not found.", "NOT_FOUND", 404)
+    
+    n.is_read = True
+    db.commit()
     return ok(None)
 
-
-@notifications_bp.patch("/mark-all-read")
-@require_auth
-def mark_all_read():
-    user = current_user()
-    current_app.db.notifications.update_many({"userId": user["_id"]}, {"$set": {"isRead": True}})
+@router.patch("/mark-all-read")
+def mark_all_read(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.query(Notification).filter(Notification.user_id == current_user.id).update({"is_read": True})
+    db.commit()
     return ok(None, "All notifications marked as read.")

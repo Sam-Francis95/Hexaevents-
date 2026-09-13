@@ -1,127 +1,101 @@
-from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from flask import Blueprint, request, current_app
+from app.database.core import get_db
+from app.database.models.user import User
+from app.schemas.core import ok, fail
+from app.schemas.auth import LoginRequest, RegisterRequest, GoogleLoginRequest
+from app.schemas.user import UserResponse
+from app.auth.security import hash_password, verify_password, issue_token
+from app.auth.google_oauth import verify_google_token
+from app.database.models.user import Role
 
-from ..common.responses import ok, fail
-from .security import hash_password, verify_password, issue_token
-from .google_oauth import verify_google_token
+router = APIRouter()
 
-auth_bp = Blueprint("auth", __name__)
+@router.post("/register")
+def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    email = body.email.strip().lower()
+    if not body.name or not email or not body.password:
+        return fail("Name, email, and password are all required.", "VALIDATION_ERROR", 400)
+    if len(body.password) < 8:
+        return fail("Password must be at least 8 characters.", "VALIDATION_ERROR", 400)
 
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        return fail("An account with this email already exists.", "EMAIL_TAKEN", 409)
 
-def _serialize_user(user):
-    return {
-        "id": str(user["_id"]),
-        "name": user.get("name"),
-        "email": user.get("email"),
-        "role": user.get("role", "participant"),
-        "authProvider": user.get("authProvider"),
-        "avatarUrl": user.get("avatarUrl", ""),
-        "department": user.get("department", ""),
-        "college": user.get("college", ""),
-        "employeeId": user.get("employeeId", ""),
-        "phone": user.get("phone", ""),
-        "batch": user.get("batch", ""),
-        "createdAt": user.get("createdAt"),
-    }
+    user = User(
+        name=body.name.strip(),
+        email=email,
+        password_hash=hash_password(body.password),
+        department=body.department,
+        college=body.college,
+        employee_id=body.employeeId,
+        phone=body.phone,
+        batch=body.batch,
+        auth_provider="local"
+    )
+    participant_role = db.query(Role).filter(Role.name == "participant").first()
+    organizer_role = db.query(Role).filter(Role.name == "event_manager").first()
+    
+    account_type = body.accountType or "participant"
+    
+    if account_type == "participant" and participant_role:
+        user.roles.append(participant_role)
+    elif account_type == "organizer" and organizer_role:
+        user.roles.append(organizer_role)
+    elif account_type == "both":
+        if participant_role: user.roles.append(participant_role)
+        if organizer_role: user.roles.append(organizer_role)
+        
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
+    token = issue_token(user.id, [r.name for r in user.roles], user.email)
+    return ok({"token": token, "user": UserResponse.model_validate(user).model_dump(by_alias=True)}, "Account created.")
 
-@auth_bp.post("/register")
-def register():
-    """Direct sign-up — 'registration directly by students' per the MoM."""
-    body = request.get_json(silent=True) or {}
-    name = (body.get("name") or "").strip()
-    email = (body.get("email") or "").strip().lower()
-    password = body.get("password") or ""
+@router.post("/login")
+def login(body: LoginRequest, db: Session = Depends(get_db)):
+    email = body.email.strip().lower()
+    
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user or user.auth_provider != "local":
+        return fail("Invalid email or password.", "INVALID_CREDENTIALS", 401)
+    if not verify_password(body.password, user.password_hash):
+        return fail("Invalid email or password.", "INVALID_CREDENTIALS", 401)
 
-    if not name or not email or not password:
-        return fail("Name, email, and password are all required.", "VALIDATION_ERROR", status=400)
-    if len(password) < 8:
-        return fail("Password must be at least 8 characters.", "VALIDATION_ERROR", status=400)
+    token = issue_token(user.id, [r.name for r in user.roles], user.email)
+    return ok({"token": token, "user": UserResponse.model_validate(user).model_dump(by_alias=True)}, "Logged in successfully.")
 
-    users = current_app.db.users
-    if users.find_one({"email": email}):
-        return fail("An account with this email already exists.", "EMAIL_TAKEN", status=409)
-
-    user = {
-        "name": name,
-        "email": email,
-        "passwordHash": hash_password(password),
-        "role": "participant",
-        "authProvider": "local",
-        "avatarUrl": "",
-        "department": body.get("department", ""),
-        "college": body.get("college", ""),
-        "employeeId": body.get("employeeId", ""),
-        "phone": body.get("phone", ""),
-        "batch": body.get("batch", ""),
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-    }
-    result = users.insert_one(user)
-    user["_id"] = result.inserted_id
-
-    token = issue_token(user)
-    return ok({"token": token, "user": _serialize_user(user)}, "Account created.")
-
-
-@auth_bp.post("/login")
-def login():
-    """User ID (email) + password login."""
-    body = request.get_json(silent=True) or {}
-    email = (body.get("email") or "").strip().lower()
-    password = body.get("password") or ""
-
-    users = current_app.db.users
-    user = users.find_one({"email": email})
-
-    if not user or user.get("authProvider") != "local":
-        return fail("Invalid email or password.", "INVALID_CREDENTIALS", status=401)
-    if not verify_password(password, user.get("passwordHash")):
-        return fail("Invalid email or password.", "INVALID_CREDENTIALS", status=401)
-
-    token = issue_token(user)
-    return ok({"token": token, "user": _serialize_user(user)}, "Logged in successfully.")
-
-
-@auth_bp.post("/google")
-def google_login():
-    """
-    Frontend sends the Google ID token (the 'credential' from
-    @react-oauth/google's GoogleLogin component) here. We verify it
-    server-side, then find-or-create the user and issue our own JWT —
-    from this point on the rest of the app never touches Google again.
-    """
-    body = request.get_json(silent=True) or {}
-    credential = body.get("credential")
-    if not credential:
-        return fail("Missing Google credential.", "VALIDATION_ERROR", status=400)
-
+@router.post("/google")
+def google_login(body: GoogleLoginRequest, db: Session = Depends(get_db)):
+    if not body.credential:
+        return fail("Missing Google credential.", "VALIDATION_ERROR", 400)
+    
     try:
-        payload = verify_google_token(credential)
+        payload = verify_google_token(body.credential)
     except ValueError as e:
-        return fail(str(e), "INVALID_GOOGLE_TOKEN", status=401)
+        return fail(str(e), "INVALID_GOOGLE_TOKEN", 401)
 
     email = payload["email"].lower()
-    users = current_app.db.users
-    user = users.find_one({"email": email})
+    user = db.query(User).filter(User.email == email).first()
 
     if not user:
-        user = {
-            "name": payload.get("name", email.split("@")[0]),
-            "email": email,
-            "passwordHash": None,
-            "role": "participant",
-            "authProvider": "google",
-            "avatarUrl": payload.get("picture", ""),
-            "department": "",
-            "college": "",
-            "employeeId": "",
-            "phone": "",
-            "batch": "",
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-        }
-        result = users.insert_one(user)
-        user["_id"] = result.inserted_id
+        user = User(
+            name=payload.get("name", email.split("@")[0]),
+            email=email,
+            password_hash=None,
+            auth_provider="google",
+            avatar_url=payload.get("picture", "")
+        )
+        participant_role = db.query(Role).filter(Role.name == "participant").first()
+        if participant_role:
+            user.roles.append(participant_role)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-    token = issue_token(user)
-    return ok({"token": token, "user": _serialize_user(user)}, "Logged in with Google.")
+    token = issue_token(user.id, [r.name for r in user.roles], user.email)
+    return ok({"token": token, "user": UserResponse.model_validate(user).model_dump(by_alias=True)}, "Logged in with Google.")

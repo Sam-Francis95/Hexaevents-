@@ -1,17 +1,14 @@
-Flask
-Flask-JWT-Extended
-Flask-Cors
-pymongo
-bcrypt
-google-auth
-requests
+fastapi
+uvicorn
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
 python-dotenv
 Faker
-
-# Test-only, but kept in the main file (same precedent as Faker) so `pip
-# install -r requirements.txt` alone is enough to run the test suite.
+requests
+google-auth
 pytest
-mongomock
-
-# Uncomment once LLM_PROVIDER is set to "openai" or "azure":
-# openai

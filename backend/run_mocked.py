@@ -2,7 +2,7 @@ import os
 import sys
 import mongomock
 
-from app import create_app
+from app_mongo import create_app
 
 # 1. Create a mocked in-memory MongoDB client
 client = mongomock.MongoClient("mongodb://localhost/smartevent")

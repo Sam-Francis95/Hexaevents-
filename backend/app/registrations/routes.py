@@ -1,177 +1,125 @@
-from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from typing import Optional, List
 
-from flask import Blueprint, request, current_app
-from bson import ObjectId
-from bson.errors import InvalidId
+from app.database.core import get_db
+from app.database.models.registration import Registration
+from app.database.models.event import Event
+from app.database.models.user import User
+from app.schemas.core import ok, fail
+from app.schemas.registration import RegistrationResponse, RegistrationCreateRequest
+from app.auth.dependencies import get_current_user
+from app.events.eligibility import evaluate_eligibility
+from app.events.routes import serialize_event
 
-from ..common.responses import ok, fail
-from ..common.auth_guard import require_auth, current_user
-from ..events.eligibility import evaluate_eligibility
-from ..events.serializers import serialize_event
-from ..email.mailer import send_email
+router = APIRouter()
 
-registrations_bp = Blueprint("registrations", __name__)
+def _serialize(r: Registration, event: Optional[Event] = None):
+    reg_dict = RegistrationResponse.model_validate(r).model_dump(by_alias=True)
+    if event:
+        reg_dict["event"] = serialize_event(event)
+    return reg_dict
 
+@router.get("/event/{event_id}")
+def get_registration_for_event(event_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    reg = db.query(Registration).filter(Registration.participant_id == current_user.id, Registration.event_id == event_id).first()
+    if reg:
+        return ok(_serialize(reg))
+    return ok(None)
 
-def _serialize(r, event=None):
-    r = dict(r)
-    r["id"] = str(r.pop("_id"))
-    r["eventId"] = str(r["eventId"])
-    r["userId"] = str(r["userId"])
-    if event is not None:
-        r["event"] = serialize_event(current_app.db, event)
-    return r
-
-
-@registrations_bp.get("/event/<event_id>")
-@require_auth
-def get_registration_for_event(event_id):
-    """Used by Event Details to decide whether to show 'Register' or
-    'Cancel registration' — returns null (not 404) when there's simply no
-    registration yet, since that's an expected, normal state, not an error."""
-    user = current_user()
-    try:
-        event_oid = ObjectId(event_id)
-    except InvalidId:
-        return fail("Event not found.", "NOT_FOUND", status=404)
-
-    reg = current_app.db.registrations.find_one({"userId": user["_id"], "eventId": event_oid})
-    return ok(_serialize(reg) if reg else None)
-
-
-@registrations_bp.get("/<registration_id>")
-@require_auth
-def get_registration_by_id(registration_id):
-    """Used by the Submission page, which is linked to directly from My
-    Registrations and needs the event (for teamSizeLimit/submissionDeadline)
-    alongside the registration itself."""
-    user = current_user()
-    try:
-        oid = ObjectId(registration_id)
-    except InvalidId:
-        return fail("Registration not found.", "NOT_FOUND", status=404)
-
-    reg = current_app.db.registrations.find_one({"_id": oid, "userId": user["_id"]})
+@router.get("/{registration_id}")
+def get_registration_by_id(registration_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    reg = db.query(Registration).filter(Registration.id == registration_id, Registration.participant_id == current_user.id).first()
     if not reg:
-        return fail("Registration not found.", "NOT_FOUND", status=404)
-
-    event = current_app.db.events.find_one({"_id": reg["eventId"]})
+        return fail("Registration not found.", "NOT_FOUND", 404)
+    event = db.query(Event).filter(Event.id == reg.event_id).first()
     return ok(_serialize(reg, event))
 
-
-@registrations_bp.get("")
-@require_auth
-def list_my_registrations():
-    user = current_user()
-    regs = list(current_app.db.registrations.find({"userId": user["_id"]}))
+@router.get("")
+def list_my_registrations(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    regs = db.query(Registration).filter(Registration.participant_id == current_user.id).all()
     result = []
     for r in regs:
-        event = current_app.db.events.find_one({"_id": r["eventId"]})
+        event = db.query(Event).filter(Event.id == r.event_id).first()
         result.append(_serialize(r, event))
     return ok(result)
 
-
-@registrations_bp.post("")
-@require_auth
-def create_registration():
-    user = current_user()
-    body = request.get_json(silent=True) or {}
-
-    try:
-        event_oid = ObjectId(body.get("eventId"))
-    except (InvalidId, TypeError):
-        return fail("Event not found.", "NOT_FOUND", status=404)
-
-    event = current_app.db.events.find_one({"_id": event_oid})
+@router.post("")
+def create_registration(body: RegistrationCreateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    event = db.query(Event).filter(Event.id == body.eventId).first()
     if not event:
-        return fail("Event not found.", "NOT_FOUND", status=404)
+        return fail("Event not found.", "NOT_FOUND", 404)
 
-    # Server-side eligibility gate — the UI disabling the button is a
-    # courtesy, this check is the actual gate and cannot be bypassed
-    # by calling the API directly.
-    eligible, reasons = evaluate_eligibility(user, event)
+    eligible, reasons = evaluate_eligibility(current_user, event)
     if not eligible:
-        return fail("You are not eligible for this event.", "NOT_ELIGIBLE", details=reasons, status=403)
+        return fail("You are not eligible for this event.", "NOT_ELIGIBLE", 403)
 
-    if current_app.db.registrations.find_one({"userId": user["_id"], "eventId": event_oid}):
-        return fail("You are already registered for this event.", "ALREADY_REGISTERED", status=409)
+    if db.query(Registration).filter(Registration.participant_id == current_user.id, Registration.event_id == event.id).first():
+        return fail("You are already registered for this event.", "ALREADY_REGISTERED", 409)
 
-    # Hackathon team roster -- only collected/validated when the event
-    # actually requires a submission (gated on the boolean field, never on
-    # the category label). teamMembers here is the *rest* of the team, i.e.
-    # teammates in addition to the person registering -- teamSizeLimit is
-    # validated against this array's length. Enforced server-side because,
-    # same as eligibility, the UI's min/max on the form is a courtesy.
-    team_members = []
-    if event.get("requiresSubmission"):
-        raw_members = body.get("teamMembers", [])
-        if not isinstance(raw_members, list):
-            return fail("teamMembers must be a list.", "VALIDATION_ERROR", status=400)
-
-        for member in raw_members:
-            name = str((member or {}).get("name", "")).strip()
-            email = str((member or {}).get("email", "")).strip()
+    team_members = body.teamMembers or []
+    if event.requires_submission:
+        for member in team_members:
+            name = str(member.get("name", "")).strip()
+            email = str(member.get("email", "")).strip()
             if not name or not email:
-                return fail("Each team member needs a name and an email.", "VALIDATION_ERROR", status=400)
-            team_members.append({"name": name, "email": email})
+                return fail("Each team member needs a name and an email.", "VALIDATION_ERROR", 400)
+            member["name"] = name
+            member["email"] = email
 
-        limit = event.get("teamSizeLimit") or {}
+        limit = event.team_size_limit or {}
         min_size = limit.get("min", 0)
         max_size = limit.get("max", min_size)
         if not (min_size <= len(team_members) <= max_size):
             return fail(
-                f"This event requires between {min_size} and {max_size} additional team members "
-                f"(you listed {len(team_members)}).",
-                "TEAM_SIZE_INVALID",
-                status=400,
+                f"This event requires between {min_size} and {max_size} additional team members (you listed {len(team_members)}).",
+                "TEAM_SIZE_INVALID", 400
             )
 
-    registered_count = current_app.db.registrations.count_documents({
-        "eventId": event_oid,
-        "status": {"$ne": "rejected"},
-    })
-    is_full = registered_count >= event.get("capacity", 0)
+    active_regs = db.query(Registration).filter(Registration.event_id == event.id, Registration.status != "rejected").count()
+    is_full = event.capacity > 0 and active_regs >= event.capacity
+    status = "waitlisted" if is_full else "registered"
 
-    registration = {
-        "eventId": event_oid,
-        "userId": user["_id"],
-        "formResponses": body.get("formResponses", {}),
-        "teamMembers": team_members,
-        "status": "waitlisted" if is_full else "registered",
-        "attended": False,
-        "registeredAt": datetime.now(timezone.utc).isoformat(),
-        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    # Build participant snapshot
+    participant_snapshot = {
+        "department": current_user.department,
+        "college": current_user.college,
+        "phone": current_user.phone,
+        "batch": current_user.batch,
+        "skills": current_user.skills,
     }
-    result = current_app.db.registrations.insert_one(registration)
-    registration["_id"] = result.inserted_id
 
-    send_email(
-        to=user["email"],
-        subject=f"You're {'waitlisted for' if is_full else 'registered for'}: {event['title']}",
-        template="registration_confirmation.html",
-        context={
-            "name": user.get("name", ""),
-            "event_title": event["title"],
-            "status": registration["status"],
-        },
+    reg = Registration(
+        event_id=event.id,
+        participant_id=current_user.id, # Note: using participant_id mapped to user_id
+        form_responses=body.formResponses,
+        team_members=team_members,
+        participant_snapshot=participant_snapshot,
+        status=status,
+        attended=False
     )
+    # The models/registration.py defines it as `participant_id`
+    # Let me ensure I use `participant_id` in the Registration Response
+    # Or in _serialize we map it correctly. Wait, I used user_id in _serialize?
+    # Let's fix that.
+    
+    db.add(reg)
+    try:
+        db.commit()
+        db.refresh(reg)
+    except IntegrityError:
+        db.rollback()
+        return fail("You are already registered for this event.", "ALREADY_REGISTERED", 409)
 
     message = "Added to the waitlist." if is_full else "Registration submitted."
-    return ok(_serialize(registration, event), message)
+    return ok(_serialize(reg, event), message)
 
-
-@registrations_bp.delete("/<registration_id>")
-@require_auth
-def cancel_registration(registration_id):
-    user = current_user()
-    try:
-        oid = ObjectId(registration_id)
-    except InvalidId:
-        return fail("Registration not found.", "NOT_FOUND", status=404)
-
-    reg = current_app.db.registrations.find_one({"_id": oid, "userId": user["_id"]})
+@router.delete("/{registration_id}")
+def cancel_registration(registration_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    reg = db.query(Registration).filter(Registration.id == registration_id, Registration.participant_id == current_user.id).first()
     if not reg:
-        return fail("Registration not found.", "NOT_FOUND", status=404)
-
-    current_app.db.registrations.delete_one({"_id": oid})
+        return fail("Registration not found.", "NOT_FOUND", 404)
+    db.delete(reg)
+    db.commit()
     return ok(None, "Registration cancelled.")

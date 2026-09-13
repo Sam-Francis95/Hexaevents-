@@ -1,51 +1,56 @@
-from flask import Blueprint, request, current_app
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database.core import get_db
+from app.database.models.user import User
+from app.database.models.registration import Registration, RegistrationChangeHistory
+from app.auth.dependencies import get_current_user
+from app.schemas.core import ok, fail
+from app.schemas.user import UserResponse, UserUpdate
 
-from ..common.responses import ok, fail
-from ..common.auth_guard import require_auth, current_user
+router = APIRouter()
 
-users_bp = Blueprint("users", __name__)
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return ok(UserResponse.model_validate(current_user).model_dump(by_alias=True))
 
-_EDITABLE_FIELDS = ["department", "college", "phone", "skills", "batch"]
+@router.patch("/me")
+def update_me(body: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    update_data = body.model_dump(exclude_unset=True)
+    if not update_data:
+        return ok(UserResponse.model_validate(current_user).model_dump(by_alias=True), "No changes made")
+        
+    # Get active registrations for this user to track history
+    active_regs = db.query(Registration).filter(
+        Registration.participant_id == current_user.id
+    ).all()
 
+    for field, new_value in update_data.items():
+        old_value = getattr(current_user, field, None)
+        
+        # Compare logic (handling lists and strings)
+        changed = False
+        if isinstance(old_value, list) and isinstance(new_value, list):
+            if set(old_value) != set(new_value):
+                changed = True
+        elif old_value != new_value:
+            changed = True
+            
+        if changed:
+            # Update user profile
+            setattr(current_user, field, new_value)
+            
+            # Record change history for each active registration
+            for reg in active_regs:
+                history_entry = RegistrationChangeHistory(
+                    registration_id=reg.id,
+                    field_name=field,
+                    old_value=str(old_value) if old_value is not None else "",
+                    new_value=str(new_value) if new_value is not None else "",
+                    changed_by=current_user.id
+                )
+                db.add(history_entry)
 
-def _serialize(u):
-    return {
-        "id": str(u["_id"]),
-        "name": u.get("name"),
-        "email": u.get("email"),
-        "role": u.get("role", "participant"),
-        "authProvider": u.get("authProvider"),
-        "avatarUrl": u.get("avatarUrl", ""),
-        "department": u.get("department", ""),
-        "college": u.get("college", ""),
-        "employeeId": u.get("employeeId", ""),
-        "phone": u.get("phone", ""),
-        "batch": u.get("batch", ""),
-        "skills": u.get("skills", []),
-    }
-
-
-@users_bp.get("/me")
-@require_auth
-def get_me():
-    user = current_user()
-    if not user:
-        return fail("User not found.", "NOT_FOUND", status=404)
-    return ok(_serialize(user))
-
-
-@users_bp.patch("/me")
-@require_auth
-def update_me():
-    user = current_user()
-    if not user:
-        return fail("User not found.", "NOT_FOUND", status=404)
-
-    body = request.get_json(silent=True) or {}
-    updates = {field: body[field] for field in _EDITABLE_FIELDS if field in body}
-
-    if updates:
-        current_app.db.users.update_one({"_id": user["_id"]}, {"$set": updates})
-        user = current_app.db.users.find_one({"_id": user["_id"]})
-
-    return ok(_serialize(user), "Profile updated.")
+    db.commit()
+    db.refresh(current_user)
+    
+    return ok(UserResponse.model_validate(current_user).model_dump(by_alias=True), "Profile updated")

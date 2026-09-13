@@ -1,71 +1,70 @@
-from flask import Blueprint, request, current_app
-from bson import ObjectId
-from bson.errors import InvalidId
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from typing import Optional, List
 
-from ..common.responses import ok, fail
-from ..common.auth_guard import require_auth, current_user
-from .eligibility import evaluate_eligibility
-from .serializers import serialize_event
+from app.database.core import get_db
+from app.database.models.event import Event
+from app.database.models.user import User
+from app.schemas.core import ok, fail
+from app.schemas.event import EventResponse
+from app.auth.dependencies import get_current_user
+from app.events.eligibility import evaluate_eligibility
 
-events_bp = Blueprint("events", __name__)
+router = APIRouter()
 
+def serialize_event(event: Event):
+    event_dict = EventResponse.model_validate(event).model_dump(by_alias=True)
+    # the registered_count comes from a subquery or python loop. 
+    # Since we need to mimic `registeredCount`, we can just query it or load it via relationship
+    active_registrations = [r for r in event.registrations if r.status != "rejected"]
+    event_dict["registeredCount"] = len(active_registrations)
+    return event_dict
 
-def _find_event_or_404(event_id):
-    try:
-        oid = ObjectId(event_id)
-    except InvalidId:
-        return None
-    return current_app.db.events.find_one({"_id": oid})
-
-
-@events_bp.get("")
-def list_events():
-    query = {}
-    category = request.args.get("category")
-    mode = request.args.get("mode")
-    status = request.args.get("status")
-    search = request.args.get("search")
-
+@router.get("")
+def list_events(
+    category: Optional[str] = None,
+    mode: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Event)
+    
     if category:
-        query["category"] = category
+        query = query.filter(Event.category == category)
     if mode:
-        query["mode"] = mode
+        query = query.filter(Event.mode == mode)
     if status:
-        query["status"] = status
+        query = query.filter(Event.status == status)
     if search:
-        query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}},
-        ]
+        query = query.filter(
+            or_(
+                Event.title.ilike(f"%{search}%"),
+                Event.description.ilike(f"%{search}%")
+            )
+        )
+        
+    events = query.all()
+    return ok([serialize_event(e) for e in events])
 
-    events = list(current_app.db.events.find(query))
-    return ok([serialize_event(current_app.db, e) for e in events])
+@router.get("/categories")
+def list_categories(db: Session = Depends(get_db)):
+    categories = db.query(Event.category).distinct().all()
+    return ok([c[0] for c in categories])
 
-
-@events_bp.get("/categories")
-def list_categories():
-    categories = current_app.db.events.distinct("category")
-    return ok(categories)
-
-
-@events_bp.get("/<event_id>")
-def get_event(event_id):
-    event = _find_event_or_404(event_id)
+@router.get("/{event_id}")
+def get_event(event_id: str, db: Session = Depends(get_db)):
+    event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        return fail("Event not found.", "NOT_FOUND", status=404)
-    return ok(serialize_event(current_app.db, event))
+        return fail("Event not found.", "NOT_FOUND", 404)
+    return ok(serialize_event(event))
 
-
-@events_bp.get("/<event_id>/eligibility")
-@require_auth
-def check_eligibility(event_id):
-    event = _find_event_or_404(event_id)
+@router.get("/{event_id}/eligibility")
+def check_eligibility(event_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        return fail("Event not found.", "NOT_FOUND", status=404)
+        return fail("Event not found.", "NOT_FOUND", 404)
 
-    user = current_user()
-    if not user:
-        return fail("User not found.", "NOT_FOUND", status=404)
-
-    eligible, reasons = evaluate_eligibility(user, event)
-    return ok({"eligible": eligible, "reasons": reasons, "rules": event.get("eligibilityRules", [])})
+    eligible, reasons = evaluate_eligibility(current_user, event)
+    return ok({"eligible": eligible, "reasons": reasons, "rules": event.eligibility_rules})

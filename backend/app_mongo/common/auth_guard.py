@@ -17,10 +17,27 @@ def require_auth(fn):
     return wrapper
 
 
+def require_role(role):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            verify_jwt_in_request()
+            user = current_user()
+            if not user or user.get("role") != role:
+                from flask import jsonify
+                return jsonify({"success": False, "message": "Unauthorized role.", "error": "FORBIDDEN"}), 403
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 def current_user():
     user_id = get_jwt_identity()
+    user = current_app.db.users.find_one({"_id": user_id})
+    if user:
+        return user
     try:
         oid = ObjectId(user_id)
+        return current_app.db.users.find_one({"_id": oid})
     except Exception:
         return None
-    return current_app.db.users.find_one({"_id": oid})

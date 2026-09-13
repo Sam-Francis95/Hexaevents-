@@ -1,3 +1,10 @@
+"""
+Server-side eligibility evaluation. This is deliberately NEVER trusted from
+the client — the Register button being disabled in the UI is a courtesy,
+not the actual gate. The real gate is this function, re-run again inside
+the registration endpoint itself before any registration is created.
+"""
+
 _RULE_FIELD_MAP = {
     "department": "department",
     "batch": "batch",
@@ -12,8 +19,9 @@ _RULE_LABEL_MAP = {
     "college": "college",
 }
 
+
 def evaluate_eligibility(user, event):
-    rules = getattr(event, "eligibility_rules", [])
+    rules = event.get("eligibilityRules", [])
     if not rules:
         return True, []
 
@@ -23,10 +31,8 @@ def evaluate_eligibility(user, event):
         rule_value = rule.get("ruleValue")
         field = _RULE_FIELD_MAP.get(rule_type)
         if not field:
-            continue
-        
-        user_val = getattr(user, field, None)
-        if user_val != rule_value:
+            continue  # unknown rule type — fail open rather than block registration on a typo
+        if user.get(field) != rule_value:
             label = _RULE_LABEL_MAP.get(rule_type, rule_type)
             reasons.append(f"Restricted to {label}: {rule_value}.")
 
