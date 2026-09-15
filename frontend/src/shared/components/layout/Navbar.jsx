@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Avatar } from '../common/Avatar';
 import { ROUTES } from '../../utils/constants';
 
-export function Navbar({ onMenuClick, title = 'SmartEvent AI', unreadCount = 0 }) {
+export function Navbar({ onMenuClick, title = 'HexaEvents', unreadCount = 0 }) {
   const { user, logout, hasRole } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);

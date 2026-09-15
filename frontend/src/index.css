@@ -61,6 +61,12 @@
     @apply rounded-sm outline-none ring-2 ring-accent-500 ring-offset-2 ring-offset-canvas;
   }
 
+  /* Hide default browser password reveal icons since we use a custom Lucide one */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
+
   ::selection {
     @apply bg-accent-100 text-accent-700;
   }

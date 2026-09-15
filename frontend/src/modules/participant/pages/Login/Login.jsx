@@ -122,10 +122,11 @@ export default function Login() {
         <div className="absolute bottom-0 left-0 size-64 rounded-full bg-purple-600/15 blur-3xl" />
         <div className="absolute right-0 top-1/2 size-48 rounded-full bg-blue-400/10 blur-2xl" />
 
-        {/* Logo */}
-        <div className="relative mb-6">
-          <div className="inline-flex items-center justify-center rounded-xl bg-white/95 px-5 py-3 shadow-lg shadow-black/10 ring-1 ring-white/20 transition-all hover:bg-white hover:-translate-y-0.5">
-            <img src="/logo.jpg" alt="Hexaware" className="h-5 w-auto object-contain mix-blend-darken" />
+        {/* Logo and Badge */}
+        <div className="relative mb-8 mt-4">
+          <div className="inline-flex flex-col transition-all hover:-translate-y-0.5">
+            <img src="/logo-white.png" alt="Hexaware" className="h-8 w-auto object-contain" />
+            <span className="mt-2 text-[11px] font-bold tracking-[0.25em] text-white/70 uppercase">HexaEvents</span>
           </div>
         </div>
 
@@ -165,7 +166,10 @@ export default function Login() {
       <div className="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden flex items-center">
-            <img src="/logo.jpg" alt="Hexaware" className="h-5 w-auto object-contain" />
+            <div className="inline-flex flex-col items-center justify-center rounded-xl bg-[#0B1E3D] px-5 py-3 shadow-sm">
+              <img src="/logo-white.png" alt="Hexaware" className="h-5 w-auto object-contain" />
+              <span className="mt-1.5 text-[9px] font-bold tracking-[0.2em] text-white/70 uppercase">HexaEvents</span>
+            </div>
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">

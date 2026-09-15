@@ -49,18 +49,18 @@ export function TopNav({ unreadCount = 3 }) {
     <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between border-b border-border bg-surface px-5 shadow-sm sm:px-7 backdrop-blur-none">
       {/* Search Input Bar */}
       <div className="relative w-full max-w-md">
-        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-300 pointer-events-none" />
-        <input
-          type="search"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Search events, hackathons, ideathons..."
-          className="h-10 w-full rounded-xl border border-border bg-canvas pl-10 pr-10 text-xs text-ink-900 placeholder:text-ink-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2]"
-        />
-        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-bold text-ink-500">
-          /
-        </div>
+          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-300 pointer-events-none" />
+          <input
+            type="search"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search events, hackathons, ideathons..."
+            className="h-10 w-full rounded-xl border border-border bg-canvas pl-10 pr-10 text-xs text-ink-900 placeholder:text-ink-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2]"
+          />
+          <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-bold text-ink-500">
+            /
+          </div>
       </div>
 
       {/* Right Controls */}

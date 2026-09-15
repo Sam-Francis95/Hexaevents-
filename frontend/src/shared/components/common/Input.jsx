@@ -1,12 +1,15 @@
-import { forwardRef, useId } from 'react';
+import { forwardRef, useId, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 export const Input = forwardRef(function Input(
-  { label, error, hint, icon, className, containerClassName, required, id, ...props },
+  { label, error, hint, icon, className, containerClassName, required, id, type, ...props },
   ref
 ) {
   const autoId = useId();
   const inputId = id || autoId;
+  const isPassword = type === 'password';
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className={cn('flex flex-col gap-1.5', containerClassName)}>
@@ -27,16 +30,28 @@ export const Input = forwardRef(function Input(
           id={inputId}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
+          type={isPassword ? (showPassword ? 'text' : 'password') : type}
           className={cn(
             'h-10 w-full rounded-lg border bg-surface px-3.5 text-sm text-ink-900 placeholder:text-ink-300',
             'transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-0',
             'border-border-strong hover:border-ink-300',
             error && 'border-danger-500 hover:border-danger-500',
             icon && 'pl-10',
+            isPassword && 'pr-10',
             className
           )}
           {...props}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 rounded-md"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
+          </button>
+        )}
       </div>
       {error && (
         <p id={`${inputId}-error`} className="text-xs text-danger-500">
